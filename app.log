@@ -1,0 +1,24 @@
+
+> my-v0-project@0.1.0 start /app
+> next start
+
+   ▲ Next.js 15.2.4
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.2:3000
+
+ ✓ Starting...
+ ✓ Ready in 472ms
+Received request to /api/question
+Generating question for difficulty: normal, history length: 0, max questions: 20
+[v0] Error generating question: Error [AI_LoadAPIKeyError]: Google Generative AI API key is missing. Pass it using the 'apiKey' parameter or the GOOGLE_GENERATIVE_AI_API_KEY environment variable.
+    at <unknown> (.next/server/app/api/question/route.js:36:48587)
+    at n (.next/server/app/api/question/route.js:36:48849)
+    at ni (.next/server/app/api/question/route.js:9:68756)
+    at s8.doGenerate (.next/server/app/api/question/route.js:36:36741)
+    at async fn (.next/server/app/api/question/route.js:51:36978)
+    at async (.next/server/app/api/question/route.js:51:26842)
+    at async u_ (.next/server/app/api/question/route.js:51:28536)
+    at async fn (.next/server/app/api/question/route.js:51:36140)
+    at async (.next/server/app/api/question/route.js:51:26842) {
+  cause: undefined
+}

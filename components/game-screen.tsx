@@ -8,12 +8,16 @@ import { Brain, Undo2, Flag, Loader2 } from "lucide-react"
 import type { QuestionAnswer, Difficulty } from "@/app/page"
 import { Progress } from "@/components/ui/progress"
 
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { XCircle } from "lucide-react"
+
 interface GameScreenProps {
   currentQuestion: string
   questionHistory: QuestionAnswer[]
   maxQuestions: number
   difficulty: Difficulty
   isLoading: boolean
+  error: string | null
   onAnswer: (answer: "yes" | "no" | "maybe") => void
   onUndo: () => void
   onGiveUp: () => void
@@ -25,6 +29,7 @@ export function GameScreen({
   maxQuestions,
   difficulty,
   isLoading,
+  error,
   onAnswer,
   onUndo,
   onGiveUp,
@@ -66,6 +71,13 @@ export function GameScreen({
         </div>
 
         <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
+          {error && (
+            <Alert variant="destructive" className="lg:col-span-2 animate-in fade-in zoom-in-95 duration-300">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <Card className="border-2 border-primary/20 lg:col-span-2 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="pb-3 sm:pb-4">
               <CardTitle className="text-base sm:text-lg">Current Question</CardTitle>
