@@ -1,3 +1,4 @@
+import { createOpenAI, createGoogleGenerativeAI } from "@ai-sdk/openai"
 import { generateText } from "ai"
 import { type NextRequest, NextResponse } from "next/server"
 import dotenv from "dotenv"
@@ -74,8 +75,20 @@ ${history.length === 0 ? "Ask your first strategic question to begin narrowing d
 
 Remember: Ask ONLY ONE clear yes/no question. If you're confident you know the answer, make a specific guess by asking "Is it [specific item]?"`
 
+    let apiKey = process.env.OPENAI_API_KEY
+    let provider
+    if (apiKey) {
+      provider = createOpenAI({ apiKey })
+    } else {
+      apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+      if (!apiKey) {
+        throw new Error("No API key found")
+      }
+      provider = createGoogleGenerativeAI({ apiKey })
+    }
+
     const { text } = await generateText({
-      model: "openai/gpt-4o-mini",
+      model: provider("gemini-1.5-flash"),
       system: SYSTEM_PROMPT,
       prompt,
       temperature: 0.7,
