@@ -25,6 +25,22 @@ interface GameScreenProps {
   onGiveUp: () => void
 }
 
+function parseQuestion(text: string) {
+  // Find the last sentence that ends with a question mark
+  const sentences = text.split(/(?<=[.!?])\s+/)
+  const questionIndex = sentences.findLastIndex((s) => s.trim().endsWith("?"))
+
+  if (questionIndex === -1) {
+    // No question mark found, return the whole text
+    return { preamble: "", question: text }
+  }
+
+  const preamble = sentences.slice(0, questionIndex).join(" ")
+  const question = sentences.slice(questionIndex).join(" ")
+
+  return { preamble, question }
+}
+
 export function GameScreen({
   currentQuestion,
   questionHistory,
@@ -46,6 +62,8 @@ export function GameScreen({
     if (progressPercentage < 80) return "bg-primary"
     return "bg-destructive"
   }
+
+  const { preamble, question } = parseQuestion(currentQuestion)
 
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-5xl">
@@ -94,9 +112,10 @@ export function GameScreen({
                     <span className="text-sm sm:text-base animate-pulse">Thinking deeply...</span>
                   </div>
                 ) : (
-                  <p className="text-lg sm:text-xl text-center text-balance font-medium leading-relaxed animate-in fade-in slide-in-from-top-2 duration-500">
-                    {currentQuestion}
-                  </p>
+                  <div className="text-lg sm:text-xl text-center text-balance leading-relaxed animate-in fade-in slide-in-from-top-2 duration-500">
+                    {preamble && <p className="font-normal mb-2">{preamble}</p>}
+                    <p className="font-bold text-primary">{question}</p>
+                  </div>
                 )}
               </div>
 

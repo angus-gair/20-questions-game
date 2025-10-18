@@ -1,4 +1,3 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { generateText } from "ai"
 import { type NextRequest, NextResponse } from "next/server"
 import dotenv from "dotenv"
@@ -48,14 +47,13 @@ Internally, you are an expert 20 Questions player. You must use a systematic, lo
 - Example of a final guess: "GUESS: I think I've got it! Is it a banana?"`
 
 export async function POST(request: NextRequest) {
-  console.log("Received request to /api/question")
+  console.log("[v0] Received request to /api/question")
   try {
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-      throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set.")
-    }
     const body: RequestBody = await request.json()
     const { history, difficulty, maxQuestions } = body
-    console.log(`Generating question for difficulty: ${difficulty}, history length: ${history.length}, max questions: ${maxQuestions}`)
+    console.log(
+      `[v0] Generating question for difficulty: ${difficulty}, history length: ${history.length}, max questions: ${maxQuestions}`,
+    )
 
     const questionsRemaining = maxQuestions - history.length
 
@@ -76,17 +74,15 @@ ${history.length === 0 ? "Ask your first strategic question to begin narrowing d
 
 Remember: Ask ONLY ONE clear yes/no question. If you're confident you know the answer, make a specific guess by asking "Is it [specific item]?"`
 
-    const google = createGoogleGenerativeAI({
-      apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    })
-
     const { text } = await generateText({
-      model: google("models/gemini-pro"),
+      model: "openai/gpt-4o-mini",
       system: SYSTEM_PROMPT,
       prompt,
       temperature: 0.7,
       maxTokens: 150,
     })
+
+    console.log("[v0] Generated response:", text)
 
     let responseText = text.trim()
     const isGuess = responseText.startsWith("GUESS:")
@@ -95,12 +91,17 @@ Remember: Ask ONLY ONE clear yes/no question. If you're confident you know the a
       responseText = responseText.substring(6).trim()
     }
 
+    console.log("[v0] Returning question:", responseText, "isGuess:", isGuess)
+
     return NextResponse.json({
       question: responseText,
       isGuess,
     })
   } catch (error) {
     console.error("[v0] Error generating question:", error)
-    return NextResponse.json({ error: "Failed to generate question" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to generate question", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    )
   }
 }
