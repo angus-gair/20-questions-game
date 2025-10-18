@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    restart: always
+    networks:
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.20q.rule=Host(`20.ajinsights.com.au`)"
+      - "traefik.http.routers.20q.entrypoints=websecure"
+      - "traefik.http.routers.20q.tls.certresolver=myresolver"
+      - "traefik.http.services.20q.loadbalancer.server.port=3000"
+
+networks:
+  traefik_proxy:
+    external: true
