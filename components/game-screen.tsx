@@ -8,13 +8,19 @@ import { Brain, Undo2, Flag, Loader2 } from "lucide-react"
 import type { QuestionAnswer, Difficulty } from "@/app/page"
 import { Progress } from "@/components/ui/progress"
 
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { XCircle } from "lucide-react"
+
 interface GameScreenProps {
   currentQuestion: string
   questionHistory: QuestionAnswer[]
   maxQuestions: number
   difficulty: Difficulty
   isLoading: boolean
+  error: string | null
+  isGuess: boolean
   onAnswer: (answer: "yes" | "no" | "maybe") => void
+  onGuess: (correct: boolean) => void
   onUndo: () => void
   onGiveUp: () => void
 }
@@ -25,7 +31,10 @@ export function GameScreen({
   maxQuestions,
   difficulty,
   isLoading,
+  error,
+  isGuess,
   onAnswer,
+  onGuess,
   onUndo,
   onGiveUp,
 }: GameScreenProps) {
@@ -66,6 +75,13 @@ export function GameScreen({
         </div>
 
         <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
+          {error && (
+            <Alert variant="destructive" className="lg:col-span-2 animate-in fade-in zoom-in-95 duration-300">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <Card className="border-2 border-primary/20 lg:col-span-2 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="pb-3 sm:pb-4">
               <CardTitle className="text-base sm:text-lg">Current Question</CardTitle>
@@ -85,32 +101,56 @@ export function GameScreen({
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button
-                  onClick={() => onAnswer("yes")}
-                  disabled={isLoading}
-                  size="lg"
-                  className="w-full sm:w-auto sm:min-w-[140px] h-12 sm:h-11 text-base hover:scale-105 active:scale-95 transition-all duration-200 shadow-md hover:shadow-lg touch-manipulation"
-                >
-                  Yes
-                </Button>
-                <Button
-                  onClick={() => onAnswer("no")}
-                  disabled={isLoading}
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto sm:min-w-[140px] h-12 sm:h-11 text-base hover:scale-105 active:scale-95 transition-all duration-200 hover:border-primary hover:bg-primary/5 touch-manipulation"
-                >
-                  No
-                </Button>
-                <Button
-                  onClick={() => onAnswer("maybe")}
-                  disabled={isLoading}
-                  size="lg"
-                  variant="secondary"
-                  className="w-full sm:w-auto sm:min-w-[140px] h-12 sm:h-11 text-base hover:scale-105 active:scale-95 transition-all duration-200 touch-manipulation"
-                >
-                  Maybe / Unsure
-                </Button>
+                {isGuess ? (
+                  <>
+                    <Button
+                      onClick={() => onGuess(true)}
+                      disabled={isLoading}
+                      size="lg"
+                      className="w-full sm:w-auto sm:min-w-[140px] h-12 sm:h-11 text-base hover:scale-105 active:scale-95 transition-all duration-200 shadow-md hover:shadow-lg touch-manipulation"
+                    >
+                      Yes, that's it!
+                    </Button>
+                    <Button
+                      onClick={() => onGuess(false)}
+                      disabled={isLoading}
+                      size="lg"
+                      variant="outline"
+                      className="w-full sm:w-auto sm:min-w-[140px] h-12 sm:h-11 text-base hover:scale-105 active:scale-95 transition-all duration-200 hover:border-primary hover:bg-primary/5 touch-manipulation"
+                    >
+                      No, keep guessing
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      onClick={() => onAnswer("yes")}
+                      disabled={isLoading}
+                      size="lg"
+                      className="w-full sm:w-auto sm:min-w-[140px] h-12 sm:h-11 text-base hover:scale-105 active:scale-95 transition-all duration-200 shadow-md hover:shadow-lg touch-manipulation"
+                    >
+                      Yes
+                    </Button>
+                    <Button
+                      onClick={() => onAnswer("no")}
+                      disabled={isLoading}
+                      size="lg"
+                      variant="outline"
+                      className="w-full sm:w-auto sm:min-w-[140px] h-12 sm:h-11 text-base hover:scale-105 active:scale-95 transition-all duration-200 hover:border-primary hover:bg-primary/5 touch-manipulation"
+                    >
+                      No
+                    </Button>
+                    <Button
+                      onClick={() => onAnswer("maybe")}
+                      disabled={isLoading}
+                      size="lg"
+                      variant="secondary"
+                      className="w-full sm:w-auto sm:min-w-[140px] h-12 sm:h-11 text-base hover:scale-105 active:scale-95 transition-all duration-200 touch-manipulation"
+                    >
+                      Maybe / Unsure
+                    </Button>
+                  </>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 justify-center pt-4 border-t">
