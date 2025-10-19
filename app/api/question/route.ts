@@ -122,7 +122,16 @@ Remember:
 
     const data = await response.json()
     console.log("[v0] OpenRouter full response:", JSON.stringify(data))
-    const text = data.choices?.[0]?.message?.content?.trim() || ''
+
+    // GPT-5-mini is a reasoning model - extract from reasoning field if content is empty
+    const message = data.choices?.[0]?.message
+    let text = message?.content?.trim() || ''
+
+    // If content is empty but reasoning exists, use the reasoning
+    if (!text && message?.reasoning) {
+      text = message.reasoning.trim()
+      console.log("[v0] Using reasoning field from GPT-5-mini")
+    }
 
     if (!text) {
       throw new Error(`No response from OpenRouter API. Response data: ${JSON.stringify(data)}`)
