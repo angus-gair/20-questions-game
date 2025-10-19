@@ -1,10 +1,9 @@
-import { createOpenAI } from "@ai-sdk/openai"
-import { createGoogleGenerativeAI } from "@ai-sdk/google"
-import { generateText } from "ai"
 import { type NextRequest, NextResponse } from "next/server"
 import dotenv from "dotenv"
 
 dotenv.config({ path: ".env.local" })
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY // OpenRouter API key
 
 interface QuestionAnswer {
   question: string
@@ -83,31 +82,49 @@ Remember:
 - If you've identified a specific item (like 'apple', 'truck', 'dog'), make a GUESS immediately by prepending "GUESS:" to your response.
 - Don't ask about minor details once you know what it is - just GUESS!`
 
-    // Try Google Gemini first, fall back to OpenAI
-    let apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-    let model
-
-    if (apiKey) {
-      console.log("[v0] Using Google Gemini API")
-      const google = createGoogleGenerativeAI({ apiKey })
-      model = google("gemini-1.5-flash")
-    } else {
-      apiKey = process.env.OPENAI_API_KEY
-      if (!apiKey) {
-        throw new Error("No API key found. Please set GOOGLE_GENERATIVE_AI_API_KEY or OPENAI_API_KEY")
-      }
-      console.log("[v0] Using OpenAI API")
-      const openai = createOpenAI({ apiKey })
-      model = openai("gpt-4o-mini")
+    // Use OpenRouter API with GPT-5-mini
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY not configured (OpenRouter key required)")
     }
 
-    const { text } = await generateText({
-      model,
-      system: SYSTEM_PROMPT,
-      prompt,
-      temperature: 0.8, // Higher temperature for more decisive guessing
-      maxTokens: 150,
+    console.log("[v0] Using OpenRouter API with gpt-5-mini")
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'HTTP-Referer': 'https://20.ajinsights.com.au',
+        'X-Title': '20 Questions Game',
+      },
+      body: JSON.stringify({
+        model: 'gpt-5-mini',
+        messages: [
+          {
+            role: 'system',
+            content: SYSTEM_PROMPT,
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.8,
+        max_tokens: 150,
+      }),
     })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(`OpenRouter API error: ${error.error?.message || response.statusText}`)
+    }
+
+    const data = await response.json()
+    const text = data.choices[0]?.message?.content?.trim() || ''
+
+    if (!text) {
+      throw new Error("No response from OpenRouter API")
+    }
 
     console.log("[v0] Generated response:", text)
 
