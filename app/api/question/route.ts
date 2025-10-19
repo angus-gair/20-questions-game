@@ -87,7 +87,7 @@ Remember:
       throw new Error("OPENAI_API_KEY not configured (OpenRouter key required)")
     }
 
-    console.log("[v0] Using OpenRouter API with gpt-4o-mini")
+    console.log("[v0] Using OpenRouter API with gpt-5-mini")
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -98,7 +98,7 @@ Remember:
         'X-Title': '20 Questions Game',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o-mini',
+        model: 'openai/gpt-5-mini',
         messages: [
           {
             role: 'system',
@@ -111,6 +111,9 @@ Remember:
         ],
         temperature: 0.8,
         max_tokens: 200,
+        reasoning: {
+          effort: 'medium',
+        },
       }),
     })
 
