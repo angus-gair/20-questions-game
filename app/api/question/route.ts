@@ -37,14 +37,16 @@ Internally, you are an expert 20 Questions player. You must use a systematic, lo
     4. Size/Scale (e.g., bigger than a car?)
     5. Function/Purpose (e.g., is it used for cooking?)
 - **Dynamic Questioning:** Every question must be a logical follow-up to the previous answer. If the user says "yes" to "Is it a living thing?", your next question must be about living things.
-- **Error Tolerance & Clarification:** The user is a child and may make mistakes.
-  - After 10-12 questions, briefly summarize what you think you know to confirm. (e.g., "Okay, so I know it's a man-made thing, it's bigger than a backpack, and you find it in the kitchen. Am I right so far?")
-  - If answers seem to contradict, ask a gentle clarifying question.
-- **Endgame:** Around question 15, if you have a strong candidate, start making educated guesses.
+- **GUESS EARLY AND OFTEN:** As soon as you narrow down to a specific category or item, MAKE A GUESS!
+  - If you know it's a specific type of fruit -> GUESS which fruit
+  - If you know it's a specific vehicle -> GUESS which vehicle
+  - If you know it's a specific animal -> GUESS which animal
+  - DO NOT keep asking about details once you've narrowed it down to a single item!
 
 **Output Rules:**
 - Ask ONLY ONE yes/no question at a time.
-- **CRITICAL:** When you are ready to make a final guess, you MUST prepend your response with the keyword "GUESS:".
+- **CRITICAL:** When you think you know what it is, you MUST prepend your response with the keyword "GUESS:".
+- **IMPORTANT:** Start guessing as early as question 5-7 if you have a strong candidate!
 - Example of a regular question: "Is it a type of fruit?"
 - Example of a final guess: "GUESS: I think I've got it! Is it a banana?"`
 
@@ -74,7 +76,12 @@ You have ${questionsRemaining} questions remaining out of ${maxQuestions} total.
 
 ${history.length === 0 ? "Ask your first strategic question to begin narrowing down what the user is thinking of." : "Based on the answers so far, ask your next strategic question."}
 
-Remember: Ask ONLY ONE clear yes/no question. If you're confident you know the answer, make a specific guess by asking "Is it [specific item]?"`
+${history.length >= 5 ? "IMPORTANT: You've asked " + history.length + " questions. If you've narrowed it down to a specific item or category, make a GUESS now! Don't waste questions on minor details." : ""}
+
+Remember:
+- Ask ONLY ONE clear yes/no question.
+- If you've identified a specific item (like 'apple', 'truck', 'dog'), make a GUESS immediately by prepending "GUESS:" to your response.
+- Don't ask about minor details once you know what it is - just GUESS!`
 
     // Try Google Gemini first, fall back to OpenAI
     let apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
@@ -98,7 +105,7 @@ Remember: Ask ONLY ONE clear yes/no question. If you're confident you know the a
       model,
       system: SYSTEM_PROMPT,
       prompt,
-      temperature: 0.7,
+      temperature: 0.8, // Higher temperature for more decisive guessing
       maxTokens: 150,
     })
 
