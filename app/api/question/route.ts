@@ -87,7 +87,7 @@ Remember:
       throw new Error("OPENAI_API_KEY not configured (OpenRouter key required)")
     }
 
-    console.log("[v0] Using OpenRouter API with gpt-5-mini")
+    console.log("[v0] Using OpenRouter API with gpt-4o-mini")
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -98,7 +98,7 @@ Remember:
         'X-Title': '20 Questions Game',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'openai/gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -110,7 +110,7 @@ Remember:
           },
         ],
         temperature: 0.8,
-        max_tokens: 500, // Increased for GPT-5-mini reasoning model
+        max_tokens: 200,
       }),
     })
 
@@ -123,32 +123,9 @@ Remember:
     const data = await response.json()
     console.log("[v0] OpenRouter full response:", JSON.stringify(data))
 
-    // GPT-5-mini is a reasoning model - extract from reasoning field if content is empty
+    // Extract response from message content
     const message = data.choices?.[0]?.message
     let text = message?.content?.trim() || ''
-
-    // If content is empty but reasoning exists, extract the actual question from reasoning
-    if (!text && message?.reasoning) {
-      const reasoning = message.reasoning.trim()
-      console.log("[v0] Using reasoning field from GPT-5-mini")
-
-      // Look for GUESS: pattern in reasoning
-      const guessMatch = reasoning.match(/GUESS:\s*([^"]+?)(?:\?|$)/i)
-      if (guessMatch) {
-        text = `GUESS: ${guessMatch[1].trim()}?`
-      } else {
-        // Try to extract quoted question
-        const questionMatch = reasoning.match(/"([^"]*\?)"/g)
-        if (questionMatch && questionMatch.length > 0) {
-          // Get the last quoted question (most likely the final output)
-          const lastQuestion = questionMatch[questionMatch.length - 1].replace(/"/g, '')
-          text = lastQuestion
-        } else {
-          // Fallback: use the reasoning as-is
-          text = reasoning
-        }
-      }
-    }
 
     if (!text) {
       throw new Error(`No response from OpenRouter API. Response data: ${JSON.stringify(data)}`)
