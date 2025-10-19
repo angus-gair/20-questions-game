@@ -16,11 +16,18 @@ RUN pnpm install --frozen-lockfile
 # Copy the rest of the application code
 COPY . .
 
-# Build the Next.js application
+# Build the Next.js application with standalone output
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
 
-# Expose the port the app runs on
+# Copy public and .next/static to standalone directory
+RUN cp -r .next/standalone ./standalone && \
+    cp -r .next/static ./standalone/.next/static && \
+    cp -r public ./standalone/public
+
+# Expose port
 EXPOSE 3000
 
-# Set the command to start the app
-CMD ["pnpm", "start"]
+# Start the application using standalone server
+WORKDIR /app/standalone
+CMD ["node", "server.js"]

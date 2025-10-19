@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: 20questions:latest
+    container_name: 20questions
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+    env_file:
+      - .env.local
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.20q-app.rule=Host(`20.ajinsights.com.au`)"
+      - "traefik.http.routers.20q-app.entrypoints=web"
+      - "traefik.http.middlewares.20q-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.20q-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.20q-app.middlewares=20q-redirect"
+      - "traefik.http.routers.20q-app-secure.rule=Host(`20.ajinsights.com.au`)"
+      - "traefik.http.routers.20q-app-secure.entrypoints=websecure"
+      - "traefik.http.routers.20q-app-secure.tls=true"
+      - "traefik.http.routers.20q-app-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.services.20q-app.loadbalancer.server.port=3000"
+      - "traefik.docker.network=dokploy-network"
+
+networks:
+  dokploy-network:
+    external: true

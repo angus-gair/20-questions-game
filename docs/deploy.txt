@@ -1,0 +1,333 @@
+# Deployment Guide for 20 Questions Game
+# Domain: 20.ajinsights.com.au
+
+## Deployment Overview
+
+This document captures the deployment process for the 20 Questions game to production.
+
+## Key Configuration
+
+- **Domain**: 20.ajinsights.com.au
+- **Port**: 3000 (internal container port)
+- **Network**: dokploy-network (using existing dokploy-traefik)
+- **Traefik Version**: v3.5.0 (dokploy-traefik)
+- **SSL**: Automatic via Let's Encrypt through dokploy-traefik
+
+## Deployment Steps
+
+### 1. Update Next.js Config for Standalone Mode
+
+The `next.config.mjs` needs to include standalone output for Docker:
+
+```javascript
+const nextConfig = {
+  output: 'standalone',
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  images: {
+    unoptimized: true,
+  },
+}
+```
+
+### 2. Update Dockerfile for Standalone Server
+
+```dockerfile
+FROM node:20-slim
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy application code
+COPY . .
+
+# Build with standalone output
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm build
+
+# Copy standalone files to runtime directory
+RUN cp -r .next/standalone ./standalone && \
+    cp -r .next/static ./standalone/.next/static && \
+    cp -r public ./standalone/public
+
+# Expose port
+EXPOSE 3000
+
+# Start the application using standalone server
+WORKDIR /app/standalone
+CMD ["node", "server.js"]
+```
+
+### 3. Docker Compose Configuration
+
+Create `docker-compose.simple.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: 20questions:latest
+    container_name: 20questions
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+    env_file:
+      - .env.local
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.20q-app.rule=Host(`20.ajinsights.com.au`)"
+      - "traefik.http.routers.20q-app.entrypoints=web"
+      - "traefik.http.middlewares.20q-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.20q-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.20q-app.middlewares=20q-redirect"
+      - "traefik.http.routers.20q-app-secure.rule=Host(`20.ajinsights.com.au`)"
+      - "traefik.http.routers.20q-app-secure.entrypoints=websecure"
+      - "traefik.http.routers.20q-app-secure.tls=true"
+      - "traefik.http.routers.20q-app-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.services.20q-app.loadbalancer.server.port=3000"
+      - "traefik.docker.network=dokploy-network"
+
+networks:
+  dokploy-network:
+    external: true
+```
+
+### 4. Environment Variables
+
+Update `.env.local` for production:
+
+```bash
+# Google Gemini API Key
+GOOGLE_GENERATIVE_AI_API_KEY=your-gemini-api-key-here
+
+# Node environment
+NODE_ENV=production
+PORT=3000
+HOSTNAME=0.0.0.0
+```
+
+### 5. Deployment Script
+
+Create `deploy-to-production.sh`:
+
+```bash
+#!/bin/bash
+
+set -e
+
+echo "🚀 Deploying 20 Questions to Production Server"
+echo "================================================"
+
+# Configuration
+REMOTE_USER="ghost"
+REMOTE_HOST="100.74.51.28"
+REMOTE_DIR="/home/ghost/projects/twentyquestions/20-questions-game"
+DOCKER_COMPOSE_FILE="docker-compose.simple.yml"
+
+# Test SSH connection
+echo "📡 Testing SSH connection to $REMOTE_USER@$REMOTE_HOST..."
+ssh -o ConnectTimeout=10 $REMOTE_USER@$REMOTE_HOST "echo 'SSH connection successful'" || {
+    echo "❌ SSH connection failed"
+    exit 1
+}
+
+# Deploy to production
+echo "📦 Deploying to production..."
+ssh $REMOTE_USER@$REMOTE_HOST << 'ENDSSH'
+    cd /home/ghost/projects/twentyquestions/20-questions-game
+
+    # Pull latest code
+    echo "🔄 Pulling latest code..."
+    git pull origin main
+
+    # Stop existing containers
+    echo "🛑 Stopping existing containers..."
+    docker compose -f docker-compose.simple.yml down || true
+
+    # Build new image
+    echo "🏗️ Building Docker image..."
+    docker compose -f docker-compose.simple.yml build --no-cache
+
+    # Start containers
+    echo "🚀 Starting containers..."
+    docker compose -f docker-compose.simple.yml up -d
+
+    # Wait for container to be healthy
+    echo "⏳ Waiting for application to start..."
+    sleep 10
+
+    # Check container status
+    echo "📊 Container status:"
+    docker ps | grep 20questions || echo "Container not found"
+
+    # Check logs
+    echo "📝 Recent logs:"
+    docker logs 20questions --tail=20 || echo "Could not retrieve logs"
+
+ENDSSH
+
+echo ""
+echo "✅ Deployment complete!"
+echo ""
+echo "🌐 Application URL: https://20.ajinsights.com.au"
+echo "❤️ Health check: https://20.ajinsights.com.au/api/health"
+echo ""
+echo "📝 To view logs:"
+echo "   ssh $REMOTE_USER@$REMOTE_HOST 'docker logs 20questions -f'"
+echo ""
+```
+
+### 6. Deployment Commands
+
+**Local commands (from development machine):**
+
+```bash
+# Make deployment script executable
+chmod +x deploy-to-production.sh
+
+# Run deployment
+./deploy-to-production.sh
+```
+
+**Remote commands (on production server):**
+
+```bash
+# SSH into server
+ssh ghost@100.74.51.28
+
+# Navigate to project
+cd /home/ghost/projects/twentyquestions/20-questions-game
+
+# Pull latest code
+git pull origin main
+
+# Stop containers
+docker compose -f docker-compose.simple.yml down
+
+# Build and start
+docker compose -f docker-compose.simple.yml build --no-cache
+docker compose -f docker-compose.simple.yml up -d
+
+# View logs
+docker logs 20questions -f
+
+# Check status
+docker ps | grep 20questions
+
+# Test health endpoint
+curl -k https://20.ajinsights.com.au/api/health
+
+# Test application
+curl -I https://20.ajinsights.com.au
+```
+
+## Troubleshooting
+
+### Issue: Application not responding
+
+**Check container status:**
+```bash
+ssh ghost@100.74.51.28 'docker ps | grep 20questions'
+```
+
+**Check logs:**
+```bash
+ssh ghost@100.74.51.28 'docker logs 20questions --tail=50'
+```
+
+**Check network binding:**
+```bash
+ssh ghost@100.74.51.28 'docker exec 20questions netstat -tulpn | grep 3000'
+```
+
+### Issue: SSL not working
+
+**Check Traefik logs:**
+```bash
+ssh ghost@100.74.51.28 'docker logs dokploy-traefik 2>&1 | grep -i "20q" | tail -20'
+```
+
+**Verify Traefik routing:**
+```bash
+ssh ghost@100.74.51.28 'docker logs dokploy-traefik 2>&1 | grep -E "(certificate|acme|lets)" | tail -10'
+```
+
+### Issue: Container exits immediately
+
+**Check standalone build:**
+```bash
+ssh ghost@100.74.51.28 'docker exec 20questions ls -la /app/standalone'
+```
+
+**Check environment variables:**
+```bash
+ssh ghost@100.74.51.28 'docker exec 20questions env | grep -E "(PORT|HOSTNAME|NODE_ENV)"'
+```
+
+## Important Notes
+
+1. **Network Configuration**: Uses dokploy-network to connect with existing dokploy-traefik
+2. **Port Binding**: Container listens on 0.0.0.0:3000 (all interfaces)
+3. **SSL Certificates**: Automatically generated by Let's Encrypt via dokploy-traefik
+4. **HTTP to HTTPS**: Automatic redirect via Traefik middleware
+5. **Standalone Mode**: Next.js standalone output for optimized Docker builds
+
+## Deployment Checklist
+
+- [ ] Update next.config.mjs with `output: 'standalone'`
+- [ ] Update Dockerfile to use standalone server
+- [ ] Create docker-compose.simple.yml with dokploy-network
+- [ ] Set environment variables in .env.local
+- [ ] Create health API endpoint at /api/health
+- [ ] Test build locally: `pnpm build`
+- [ ] Commit and push to GitHub
+- [ ] Run deployment script
+- [ ] Verify application at https://20.ajinsights.com.au
+- [ ] Check health endpoint: https://20.ajinsights.com.au/api/health
+- [ ] Test HTTP to HTTPS redirect
+- [ ] Verify SSL certificate
+
+## Monitoring
+
+**Check application health:**
+```bash
+curl -k https://20.ajinsights.com.au/api/health
+```
+
+**View real-time logs:**
+```bash
+ssh ghost@100.74.51.28 'docker logs 20questions -f'
+```
+
+**Check resource usage:**
+```bash
+ssh ghost@100.74.51.28 'docker stats 20questions --no-stream'
+```
+
+## Key Differences from Development
+
+1. **Build Mode**: Standalone server vs development server
+2. **Network**: dokploy-network vs localhost
+3. **SSL**: Let's Encrypt via Traefik vs no SSL
+4. **Environment**: Production optimizations enabled
+5. **Restart Policy**: unless-stopped for automatic recovery
