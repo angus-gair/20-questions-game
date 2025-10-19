@@ -112,10 +112,14 @@ Remember:
     console.log("[v0] Generated response:", text)
 
     let responseText = text.trim()
-    const isGuess = responseText.startsWith("GUESS:")
+
+    // Check if GUESS: appears anywhere in the response (not just at start)
+    const isGuess = responseText.includes("GUESS:")
 
     if (isGuess) {
-      responseText = responseText.substring(6).trim()
+      // Extract everything after "GUESS:" if it exists
+      const guessIndex = responseText.indexOf("GUESS:")
+      responseText = responseText.substring(guessIndex + 6).trim()
     }
 
     console.log("[v0] Returning question:", responseText, "isGuess:", isGuess)
