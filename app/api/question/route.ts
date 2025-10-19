@@ -1,4 +1,5 @@
-import { createOpenAI, createGoogleGenerativeAI } from "@ai-sdk/openai"
+import { createOpenAI } from "@ai-sdk/openai"
+import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { generateText } from "ai"
 import { type NextRequest, NextResponse } from "next/server"
 import dotenv from "dotenv"
@@ -75,20 +76,26 @@ ${history.length === 0 ? "Ask your first strategic question to begin narrowing d
 
 Remember: Ask ONLY ONE clear yes/no question. If you're confident you know the answer, make a specific guess by asking "Is it [specific item]?"`
 
-    let apiKey = process.env.OPENAI_API_KEY
-    let provider
+    // Try Google Gemini first, fall back to OpenAI
+    let apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    let model
+
     if (apiKey) {
-      provider = createOpenAI({ apiKey })
+      console.log("[v0] Using Google Gemini API")
+      const google = createGoogleGenerativeAI({ apiKey })
+      model = google("gemini-1.5-flash")
     } else {
-      apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+      apiKey = process.env.OPENAI_API_KEY
       if (!apiKey) {
-        throw new Error("No API key found")
+        throw new Error("No API key found. Please set GOOGLE_GENERATIVE_AI_API_KEY or OPENAI_API_KEY")
       }
-      provider = createGoogleGenerativeAI({ apiKey })
+      console.log("[v0] Using OpenAI API")
+      const openai = createOpenAI({ apiKey })
+      model = openai("gpt-4o-mini")
     }
 
     const { text } = await generateText({
-      model: provider("gemini-1.5-flash"),
+      model,
       system: SYSTEM_PROMPT,
       prompt,
       temperature: 0.7,
