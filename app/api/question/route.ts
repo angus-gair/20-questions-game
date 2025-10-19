@@ -98,7 +98,7 @@ Remember:
         'X-Title': '20 Questions Game',
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini',
+        model: 'openai/gpt-5-mini',
         messages: [
           {
             role: 'system',
