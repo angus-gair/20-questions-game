@@ -110,7 +110,7 @@ Remember:
           },
         ],
         temperature: 0.8,
-        max_tokens: 150,
+        max_tokens: 500, // Increased for GPT-5-mini reasoning model
       }),
     })
 
