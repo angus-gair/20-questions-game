@@ -127,10 +127,27 @@ Remember:
     const message = data.choices?.[0]?.message
     let text = message?.content?.trim() || ''
 
-    // If content is empty but reasoning exists, use the reasoning
+    // If content is empty but reasoning exists, extract the actual question from reasoning
     if (!text && message?.reasoning) {
-      text = message.reasoning.trim()
+      const reasoning = message.reasoning.trim()
       console.log("[v0] Using reasoning field from GPT-5-mini")
+
+      // Look for GUESS: pattern in reasoning
+      const guessMatch = reasoning.match(/GUESS:\s*([^"]+?)(?:\?|$)/i)
+      if (guessMatch) {
+        text = `GUESS: ${guessMatch[1].trim()}?`
+      } else {
+        // Try to extract quoted question
+        const questionMatch = reasoning.match(/"([^"]*\?)"/g)
+        if (questionMatch && questionMatch.length > 0) {
+          // Get the last quoted question (most likely the final output)
+          const lastQuestion = questionMatch[questionMatch.length - 1].replace(/"/g, '')
+          text = lastQuestion
+        } else {
+          // Fallback: use the reasoning as-is
+          text = reasoning
+        }
+      }
     }
 
     if (!text) {
