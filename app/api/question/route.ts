@@ -115,15 +115,17 @@ Remember:
     })
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(`OpenRouter API error: ${error.error?.message || response.statusText}`)
+      const errorText = await response.text()
+      console.log("[v0] OpenRouter error response:", errorText)
+      throw new Error(`OpenRouter API error (${response.status}): ${errorText}`)
     }
 
     const data = await response.json()
-    const text = data.choices[0]?.message?.content?.trim() || ''
+    console.log("[v0] OpenRouter full response:", JSON.stringify(data))
+    const text = data.choices?.[0]?.message?.content?.trim() || ''
 
     if (!text) {
-      throw new Error("No response from OpenRouter API")
+      throw new Error(`No response from OpenRouter API. Response data: ${JSON.stringify(data)}`)
     }
 
     console.log("[v0] Generated response:", text)
