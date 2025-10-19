@@ -110,9 +110,9 @@ Remember:
           },
         ],
         temperature: 0.8,
-        max_tokens: 200,
+        max_tokens: 1000, // High limit to allow both reasoning tokens and content output
         reasoning: {
-          effort: 'medium',
+          effort: 'low', // Use low effort to minimize reasoning tokens, focus on output
         },
       }),
     })
