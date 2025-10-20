@@ -82,23 +82,21 @@ Remember:
 - If you've identified a specific item (like 'apple', 'truck', 'dog'), make a GUESS immediately by prepending "GUESS:" to your response.
 - Don't ask about minor details once you know what it is - just GUESS!`
 
-    // Use OpenRouter API with GPT-5-mini
+    // Use OpenAI API with GPT-4
     if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY not configured (OpenRouter key required)")
+      throw new Error("OPENAI_API_KEY not configured")
     }
 
-    console.log("[v0] Using OpenRouter API with gpt-5-mini")
+    console.log("[v0] Using OpenAI API with GPT-4")
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'HTTP-Referer': 'https://20.ajinsights.com.au',
-        'X-Title': '20 Questions Game',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -110,28 +108,25 @@ Remember:
           },
         ],
         temperature: 0.8,
-        max_tokens: 1000, // High limit to allow both reasoning tokens and content output
-        reasoning: {
-          effort: 'low', // Use low effort to minimize reasoning tokens, focus on output
-        },
+        max_tokens: 1000,
       }),
     })
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.log("[v0] OpenRouter error response:", errorText)
-      throw new Error(`OpenRouter API error (${response.status}): ${errorText}`)
+      console.log("[v0] OpenAI error response:", errorText)
+      throw new Error(`OpenAI API error (${response.status}): ${errorText}`)
     }
 
     const data = await response.json()
-    console.log("[v0] OpenRouter full response:", JSON.stringify(data))
+    console.log("[v0] OpenAI full response:", JSON.stringify(data))
 
     // Extract response from message content
     const message = data.choices?.[0]?.message
     let text = message?.content?.trim() || ''
 
     if (!text) {
-      throw new Error(`No response from OpenRouter API. Response data: ${JSON.stringify(data)}`)
+      throw new Error(`No response from OpenAI API. Response data: ${JSON.stringify(data)}`)
     }
 
     console.log("[v0] Generated response:", text)
